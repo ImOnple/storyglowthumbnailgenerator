@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다음 날짜 캔버스</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #000; /* 배경색 #000 적용 */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+            border: 1px solid #eee;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            width: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>다음 날짜 캔버스</h1>
+    <canvas id="myCanvas" width="1280" height="720"></canvas>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="innerGlowColor">내부 그림자 색상:</label>
+            <input type="color" id="innerGlowColor" value="#87CEEB">
+        </div>
+        <div class="control-group">
+            <label for="outerGlowColor">외부 그림자 색상:</label>
+            <input type="color" id="outerGlowColor" value="#0000FF">
+        </div>
+        <button id="downloadCanvas">캔버스 다운로드</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        const innerGlowColorInput = document.getElementById('innerGlowColor');
+        const outerGlowColorInput = document.getElementById('outerGlowColor');
+        const downloadButton = document.getElementById('downloadCanvas');
+
+        function drawCanvas() {
+            // 캔버스 배경색 설정
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 다음 날짜 계산 (한국 시간 기준)
+            const today = new Date();
+            const nextDay = new Date(today);
+            nextDay.setDate(today.getDate() + 1);
+
+            const year = nextDay.getFullYear();
+            const month = String(nextDay.getMonth() + 1).padStart(2, '0');
+            const day = String(nextDay.getDate()).padStart(2, '0');
+            const dateString = `${year}.${month}.${day}.`; // 정확한 YYYY.MM.DD. 형식
+
+            // 텍스트 스타일 설정
+            ctx.font = '900 120px Inter'; // Inter 폰트, Black (900), 크기
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // 텍스트 그림자 설정 (흰색 그림자)
+            ctx.shadowColor = 'white';
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.shadowBlur = 6;
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+
+            // Inner Glow (내부 그림자)
+            const innerGlowColor = innerGlowColorInput.value;
+            ctx.shadowColor = innerGlowColor;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.shadowBlur = 10;
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2); // 텍스트를 다시 그려 내부 그림자 효과 적용
+
+            // Outer Glow (외부 그림자)
+            const outerGlowColor = outerGlowColorInput.value;
+            ctx.shadowColor = outerGlowColor;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.shadowBlur = 50;
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2); // 텍스트를 다시 그려 외부 그림자 효과 적용
+
+            // 최종 텍스트 그리기 (그림자 위에 덮어씌워져 선명하게 보이도록)
+            ctx.shadowColor = 'transparent'; // 그림자 제거
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+        }
+
+        // 초기 캔버스 그리기
+        drawCanvas();
+
+        // 색상 입력 변경 시 캔버스 다시 그리기
+        innerGlowColorInput.addEventListener('input', drawCanvas);
+        outerGlowColorInput.addEventListener('input', drawCanvas);
+
+        // 캔버스 다운로드 기능
+        downloadButton.addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'next_date_canvas.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    </script>
+</body>
+</html>
