@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>다음 날짜 캔버스</title>
+    <title>스토리 글로우 썸네일 생성기</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap" rel="stylesheet">
@@ -14,36 +14,99 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #1a1a1a; /* 다크 모드 배경 */
+            color: #e0e0e0; /* 다크 모드 텍스트 색상 */
             font-family: Arial, sans-serif;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #ffffff;
         }
         canvas {
-            border: 1px solid #ccc;
-            background-color: #000; /* 배경색 #000 적용 */
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border: 1px solid #444;
+            background-color: #000;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            max-width: 100%; /* 모바일 반응형 */
+            height: auto; /* 비율 유지 */
         }
         .controls {
             margin-top: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            padding: 20px;
-            border: 1px solid #eee;
-            background-color: #fff;
+            gap: 15px;
+            padding: 25px;
+            border: 1px solid #333;
+            background-color: #2b2b2b; /* 다크 모드 컨트롤 배경 */
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
         }
         .control-group {
             display: flex;
+            flex-wrap: wrap; /* 모바일에서 요소들이 줄바꿈되도록 */
             align-items: center;
             gap: 10px;
         }
         .control-group label {
-            width: 100px;
+            flex-basis: 120px; /* 라벨 너비 고정 */
+            color: #cccccc;
+        }
+        .control-group input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 50px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .control-group input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .control-group input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+        .control-group input[type="range"] {
+            flex-grow: 1; /* 범위 슬라이더가 남은 공간을 차지하도록 */
+            width: auto;
+            min-width: 100px;
+            height: 5px;
+            background: #555;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .control-group span {
+            min-width: 30px;
+            text-align: right;
+            color: #cccccc;
         }
         button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 16px;
             cursor: pointer;
             background-color: #007bff;
@@ -51,9 +114,41 @@
             border: none;
             border-radius: 5px;
             transition: background-color 0.3s ease;
+            align-self: center; /* 버튼 중앙 정렬 */
+            width: fit-content;
         }
         button:hover {
             background-color: #0056b3;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            .controls {
+                padding: 15px;
+                gap: 10px;
+            }
+            .control-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .control-group label {
+                flex-basis: auto;
+                width: auto;
+            }
+            .control-group input[type="color"],
+            .control-group input[type="range"] {
+                width: 100%;
+                max-width: none;
+            }
+            button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -62,23 +157,54 @@
     <canvas id="myCanvas" width="1280" height="720"></canvas>
 
     <div class="controls">
+        <h2>그림자 설정</h2>
+
+        <div class="control-group">
+            <label>흰색 그림자:</label>
+            <input type="range" id="whiteShadowBlur" min="0" max="20" value="6">
+            <span id="whiteShadowBlurValue">6px</span>
+        </div>
+
         <div class="control-group">
             <label for="innerGlowColor">내부 그림자 색상:</label>
             <input type="color" id="innerGlowColor" value="#87CEEB">
+            <input type="range" id="innerGlowBlur" min="0" max="50" value="10">
+            <span id="innerGlowBlurValue">10px</span>
         </div>
+
         <div class="control-group">
             <label for="outerGlowColor">외부 그림자 색상:</label>
             <input type="color" id="outerGlowColor" value="#0000FF">
+            <input type="range" id="outerGlowBlur" min="0" max="100" value="50">
+            <span id="outerGlowBlurValue">50px</span>
         </div>
+
         <button id="downloadCanvas">캔버스 다운로드</button>
     </div>
 
     <script>
         const canvas = document.getElementById('myCanvas');
         const ctx = canvas.getContext('2d');
+
+        // 그림자 설정 컨트롤
+        const whiteShadowBlurInput = document.getElementById('whiteShadowBlur');
+        const whiteShadowBlurValueSpan = document.getElementById('whiteShadowBlurValue');
+
         const innerGlowColorInput = document.getElementById('innerGlowColor');
+        const innerGlowBlurInput = document.getElementById('innerGlowBlur');
+        const innerGlowBlurValueSpan = document.getElementById('innerGlowBlurValue');
+
         const outerGlowColorInput = document.getElementById('outerGlowColor');
+        const outerGlowBlurInput = document.getElementById('outerGlowBlur');
+        const outerGlowBlurValueSpan = document.getElementById('outerGlowBlurValue');
+
         const downloadButton = document.getElementById('downloadCanvas');
+
+        // 슬라이더 값 업데이트 함수
+        function updateSliderValue(inputElement, valueSpanElement) {
+            valueSpanElement.textContent = `${inputElement.value}px`;
+            drawCanvas();
+        }
 
         function drawCanvas() {
             // 캔버스 배경색 설정
@@ -87,13 +213,17 @@
 
             // 다음 날짜 계산 (한국 시간 기준)
             const today = new Date();
-            const nextDay = new Date(today);
-            nextDay.setDate(today.getDate() + 1);
+            // 대한민국 표준시 (KST)로 현재 시간을 얻기 위해 'Asia/Seoul' 타임존을 사용
+            const kstOffset = 9 * 60; // KST는 UTC+9
+            const localTime = new Date(today.getTime() + (today.getTimezoneOffset() * 60000) + (kstOffset * 60000));
+
+            const nextDay = new Date(localTime);
+            nextDay.setDate(localTime.getDate() + 1);
 
             const year = nextDay.getFullYear();
             const month = String(nextDay.getMonth() + 1).padStart(2, '0');
             const day = String(nextDay.getDate()).padStart(2, '0');
-            const dateString = `${year}.${month}.${day}.`; // 정확한 YYYY.MM.DD. 형식
+            const dateString = `${year}.${month}.${day}.`; // YYYY.MM.DD. 형식
 
             // 텍스트 스타일 설정
             ctx.font = '900 120px Inter'; // Inter 폰트, Black (900), 크기
@@ -101,28 +231,31 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // 텍스트 그림자 설정 (흰색 그림자)
+            // 흰색 그림자
+            const whiteShadowBlur = parseInt(whiteShadowBlurInput.value);
             ctx.shadowColor = 'white';
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.shadowBlur = 6;
+            ctx.shadowBlur = whiteShadowBlur;
             ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
 
             // Inner Glow (내부 그림자)
             const innerGlowColor = innerGlowColorInput.value;
+            const innerGlowBlur = parseInt(innerGlowBlurInput.value);
             ctx.shadowColor = innerGlowColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.shadowBlur = 10;
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2); // 텍스트를 다시 그려 내부 그림자 효과 적용
+            ctx.shadowBlur = innerGlowBlur;
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
 
             // Outer Glow (외부 그림자)
             const outerGlowColor = outerGlowColorInput.value;
+            const outerGlowBlur = parseInt(outerGlowBlurInput.value);
             ctx.shadowColor = outerGlowColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.shadowBlur = 50;
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2); // 텍스트를 다시 그려 외부 그림자 효과 적용
+            ctx.shadowBlur = outerGlowBlur;
+            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
 
             // 최종 텍스트 그리기 (그림자 위에 덮어씌워져 선명하게 보이도록)
             ctx.shadowColor = 'transparent'; // 그림자 제거
@@ -132,9 +265,12 @@
         // 초기 캔버스 그리기
         drawCanvas();
 
-        // 색상 입력 변경 시 캔버스 다시 그리기
+        // 이벤트 리스너 등록
+        whiteShadowBlurInput.addEventListener('input', () => updateSliderValue(whiteShadowBlurInput, whiteShadowBlurValueSpan));
         innerGlowColorInput.addEventListener('input', drawCanvas);
+        innerGlowBlurInput.addEventListener('input', () => updateSliderValue(innerGlowBlurInput, innerGlowBlurValueSpan));
         outerGlowColorInput.addEventListener('input', drawCanvas);
+        outerGlowBlurInput.addEventListener('input', () => updateSliderValue(outerGlowBlurInput, outerGlowBlurValueSpan));
 
         // 캔버스 다운로드 기능
         downloadButton.addEventListener('click', () => {
