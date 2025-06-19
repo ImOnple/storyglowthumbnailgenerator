@@ -101,7 +101,7 @@
             cursor: pointer;
         }
         .control-group span {
-            min-width: 30px;
+            min-width: 50px; /* 값 표시 너비 증가 */
             text-align: right;
             color: #cccccc;
         }
@@ -160,22 +160,43 @@
         <h2>그림자 설정</h2>
 
         <div class="control-group">
-            <label>흰색 그림자:</label>
-            <input type="range" id="whiteShadowBlur" min="0" max="20" value="6">
+            <label>흰색 그림자 거리:</label>
+            <input type="range" id="whiteShadowOffset" min="-300" max="300" value="0">
+            <span id="whiteShadowOffsetValue">0px</span>
+        </div>
+        <div class="control-group">
+            <label>흰색 그림자 부드러움:</label>
+            <input type="range" id="whiteShadowBlur" min="0" max="300" value="6">
             <span id="whiteShadowBlurValue">6px</span>
         </div>
 
         <div class="control-group">
             <label for="innerGlowColor">내부 그림자 색상:</label>
             <input type="color" id="innerGlowColor" value="#87CEEB">
-            <input type="range" id="innerGlowBlur" min="0" max="50" value="10">
+        </div>
+        <div class="control-group">
+            <label>내부 그림자 거리:</label>
+            <input type="range" id="innerGlowOffset" min="-300" max="300" value="0">
+            <span id="innerGlowOffsetValue">0px</span>
+        </div>
+        <div class="control-group">
+            <label>내부 그림자 부드러움:</label>
+            <input type="range" id="innerGlowBlur" min="0" max="300" value="10">
             <span id="innerGlowBlurValue">10px</span>
         </div>
 
         <div class="control-group">
             <label for="outerGlowColor">외부 그림자 색상:</label>
             <input type="color" id="outerGlowColor" value="#0000FF">
-            <input type="range" id="outerGlowBlur" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label>외부 그림자 거리:</label>
+            <input type="range" id="outerGlowOffset" min="-300" max="300" value="0">
+            <span id="outerGlowOffsetValue">0px</span>
+        </div>
+        <div class="control-group">
+            <label>외부 그림자 부드러움:</label>
+            <input type="range" id="outerGlowBlur" min="0" max="300" value="50">
             <span id="outerGlowBlurValue">50px</span>
         </div>
 
@@ -187,18 +208,26 @@
         const ctx = canvas.getContext('2d');
 
         // 그림자 설정 컨트롤
+        const whiteShadowOffsetInput = document.getElementById('whiteShadowOffset');
+        const whiteShadowOffsetValueSpan = document.getElementById('whiteShadowOffsetValue');
         const whiteShadowBlurInput = document.getElementById('whiteShadowBlur');
         const whiteShadowBlurValueSpan = document.getElementById('whiteShadowBlurValue');
 
         const innerGlowColorInput = document.getElementById('innerGlowColor');
+        const innerGlowOffsetInput = document.getElementById('innerGlowOffset');
+        const innerGlowOffsetValueSpan = document.getElementById('innerGlowOffsetValue');
         const innerGlowBlurInput = document.getElementById('innerGlowBlur');
         const innerGlowBlurValueSpan = document.getElementById('innerGlowBlurValue');
 
         const outerGlowColorInput = document.getElementById('outerGlowColor');
+        const outerGlowOffsetInput = document.getElementById('outerGlowOffset');
+        const outerGlowOffsetValueSpan = document.getElementById('outerGlowOffsetValue');
         const outerGlowBlurInput = document.getElementById('outerGlowBlur');
         const outerGlowBlurValueSpan = document.getElementById('outerGlowBlurValue');
 
         const downloadButton = document.getElementById('downloadCanvas');
+
+        let currentDateString = ''; // 현재 캔버스에 그려진 날짜 문자열 저장
 
         // 슬라이더 값 업데이트 함수
         function updateSliderValue(inputElement, valueSpanElement) {
@@ -214,16 +243,20 @@
             // 다음 날짜 계산 (한국 시간 기준)
             const today = new Date();
             // 대한민국 표준시 (KST)로 현재 시간을 얻기 위해 'Asia/Seoul' 타임존을 사용
-            const kstOffset = 9 * 60; // KST는 UTC+9
-            const localTime = new Date(today.getTime() + (today.getTimezoneOffset() * 60000) + (kstOffset * 60000));
+            // 시스템 로컬 시간과 UTC 시간의 차이를 분 단위로 가져옴
+            const localOffsetMinutes = today.getTimezoneOffset();
+            // KST (UTC+9)와 UTC의 차이 (분 단위)
+            const kstOffsetMinutes = 9 * 60;
+            // 로컬 시간에서 KST로 보정
+            const kstTime = new Date(today.getTime() + (localOffsetMinutes + kstOffsetMinutes) * 60000);
 
-            const nextDay = new Date(localTime);
-            nextDay.setDate(localTime.getDate() + 1);
+            const nextDay = new Date(kstTime);
+            nextDay.setDate(kstTime.getDate() + 1);
 
             const year = nextDay.getFullYear();
             const month = String(nextDay.getMonth() + 1).padStart(2, '0');
             const day = String(nextDay.getDate()).padStart(2, '0');
-            const dateString = `${year}.${month}.${day}.`; // YYYY.MM.DD. 형식
+            currentDateString = `${year}.${month}.${day}.`; // YYYY.MM.DD. 형식
 
             // 텍스트 스타일 설정
             ctx.font = '900 120px Inter'; // Inter 폰트, Black (900), 크기
@@ -232,44 +265,52 @@
             ctx.textBaseline = 'middle';
 
             // 흰색 그림자
+            const whiteShadowOffset = parseInt(whiteShadowOffsetInput.value);
             const whiteShadowBlur = parseInt(whiteShadowBlurInput.value);
             ctx.shadowColor = 'white';
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            ctx.shadowOffsetX = whiteShadowOffset;
+            ctx.shadowOffsetY = whiteShadowOffset; // y축도 동일하게 적용
             ctx.shadowBlur = whiteShadowBlur;
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(currentDateString, canvas.width / 2, canvas.height / 2);
 
             // Inner Glow (내부 그림자)
             const innerGlowColor = innerGlowColorInput.value;
+            const innerGlowOffset = parseInt(innerGlowOffsetInput.value);
             const innerGlowBlur = parseInt(innerGlowBlurInput.value);
             ctx.shadowColor = innerGlowColor;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            ctx.shadowOffsetX = innerGlowOffset;
+            ctx.shadowOffsetY = innerGlowOffset; // y축도 동일하게 적용
             ctx.shadowBlur = innerGlowBlur;
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(currentDateString, canvas.width / 2, canvas.height / 2);
 
             // Outer Glow (외부 그림자)
             const outerGlowColor = outerGlowColorInput.value;
+            const outerGlowOffset = parseInt(outerGlowOffsetInput.value);
             const outerGlowBlur = parseInt(outerGlowBlurInput.value);
             ctx.shadowColor = outerGlowColor;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            ctx.shadowOffsetX = outerGlowOffset;
+            ctx.shadowOffsetY = outerGlowOffset; // y축도 동일하게 적용
             ctx.shadowBlur = outerGlowBlur;
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(currentDateString, canvas.width / 2, canvas.height / 2);
 
             // 최종 텍스트 그리기 (그림자 위에 덮어씌워져 선명하게 보이도록)
             ctx.shadowColor = 'transparent'; // 그림자 제거
-            ctx.fillText(dateString, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(currentDateString, canvas.width / 2, canvas.height / 2);
         }
 
         // 초기 캔버스 그리기
         drawCanvas();
 
         // 이벤트 리스너 등록
+        whiteShadowOffsetInput.addEventListener('input', () => updateSliderValue(whiteShadowOffsetInput, whiteShadowOffsetValueSpan));
         whiteShadowBlurInput.addEventListener('input', () => updateSliderValue(whiteShadowBlurInput, whiteShadowBlurValueSpan));
+
         innerGlowColorInput.addEventListener('input', drawCanvas);
+        innerGlowOffsetInput.addEventListener('input', () => updateSliderValue(innerGlowOffsetInput, innerGlowOffsetValueSpan));
         innerGlowBlurInput.addEventListener('input', () => updateSliderValue(innerGlowBlurInput, innerGlowBlurValueSpan));
+
         outerGlowColorInput.addEventListener('input', drawCanvas);
+        outerGlowOffsetInput.addEventListener('input', () => updateSliderValue(outerGlowOffsetInput, outerGlowOffsetValueSpan));
         outerGlowBlurInput.addEventListener('input', () => updateSliderValue(outerGlowBlurInput, outerGlowBlurValueSpan));
 
         // 캔버스 다운로드 기능
@@ -277,7 +318,10 @@
             const dataURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = dataURL;
-            a.download = 'next_date_canvas.png';
+            // 파일 이름을 캔버스 날짜 형식에 맞춰서 설정 (예: 2025.06.21..png)
+            // 마지막 마침표를 .png 앞에 붙이기 위해 replaceAll 사용
+            const fileName = currentDateString.replaceAll('.', '_') + '.png'; // 파일명에 마침표는 적절치 않으므로 밑줄로 변경
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
