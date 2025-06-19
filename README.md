@@ -1,1 +1,2 @@
 # storyglowthumbnailgenerator
+설명할필요가딱히업는듯
